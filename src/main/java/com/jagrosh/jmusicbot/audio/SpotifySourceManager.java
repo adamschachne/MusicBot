@@ -29,8 +29,6 @@ import java.util.regex.Pattern;
 public class SpotifySourceManager extends YoutubeAudioSourceManager
 {
     private final static Logger log = LoggerFactory.getLogger(SpotifySourceManager.class);
-
-    
     private final String spotifyRegex = "(?:https?:\\/\\/)?(?:www\\.)?(?:open\\.)?spotify\\.com\\/(track|album|playlist)\\/([a-zA-Z0-9]+).*";
     private final Pattern pattern = Pattern.compile(spotifyRegex);
 
@@ -68,6 +66,11 @@ public class SpotifySourceManager extends YoutubeAudioSourceManager
     public String getSourceName()
     {
         return "spotify";
+    }
+
+    public boolean isEnabled()
+    {
+        return enabled;
     }
 
     private AudioItem loadItemFromYoutube(AudioPlayerManager apm, String artist, String title)
@@ -166,9 +169,5 @@ public class SpotifySourceManager extends YoutubeAudioSourceManager
             log.warn("Exception when trying to load item", ex);
         }
         return null;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
     }
 }

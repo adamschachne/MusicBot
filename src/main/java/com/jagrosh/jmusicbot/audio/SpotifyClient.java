@@ -52,7 +52,8 @@ public class SpotifyClient
             Track track = getTrackRequest.execute();
             return track;
         }
-        catch (IOException | SpotifyWebApiException | org.apache.hc.core5.http.ParseException e) {
+        catch (IOException | SpotifyWebApiException | org.apache.hc.core5.http.ParseException e)
+        {
             return null;
         }
 
