@@ -8,11 +8,13 @@ import com.sedmelluq.discord.lavaplayer.track.AudioItem;
 import com.sedmelluq.discord.lavaplayer.track.AudioPlaylist;
 import com.sedmelluq.discord.lavaplayer.track.AudioReference;
 import com.sedmelluq.discord.lavaplayer.track.AudioTrack;
+import com.sedmelluq.discord.lavaplayer.track.AudioTrackInfo;
 import com.sedmelluq.discord.lavaplayer.track.BasicAudioPlaylist;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 
 import dev.lavalink.youtube.YoutubeAudioSourceManager;
+import se.michaelthelin.spotify.model_objects.IPlaylistItem;
 import se.michaelthelin.spotify.model_objects.specification.Album;
 import se.michaelthelin.spotify.model_objects.specification.Playlist;
 import se.michaelthelin.spotify.model_objects.specification.PlaylistTrack;
@@ -59,7 +61,6 @@ public class SpotifySourceManager extends YoutubeAudioSourceManager
             }
             
             this.enabled = true;
-            log.info("Successfully enabled Spotify");
         }
     }
 
@@ -67,6 +68,11 @@ public class SpotifySourceManager extends YoutubeAudioSourceManager
     public String getSourceName()
     {
         return "spotify";
+    }
+
+    private AudioItem loadItemFromYoutube(AudioPlayerManager apm, String artist, String title)
+    {
+        return super.loadItem(apm, new AudioReference(String.format("ytsearch:%s - %s", artist, title), title));
     }
 
     @Override
@@ -93,27 +99,38 @@ public class SpotifySourceManager extends YoutubeAudioSourceManager
                 {   
                     Track track = spotify.fetchTrackInfo(identifier);
                     String artist = track.getArtists()[0].getName();
-                    
-                    return super.loadItem(apm, new AudioReference(String.format("ytsearch:%s - %s", artist, track.getName()), null));
+                    String title = track.getName();
+                    return loadItemFromYoutube(apm, artist, title);
                 }
                 else if ("playlist".equals(type))
                 {
                     Playlist playlistTracks = spotify.fetchPlaylistInfo(identifier);
+                    String playlistName = playlistTracks.getName();
                     List<AudioTrack> tracks = new ArrayList<>();
-                    for (PlaylistTrack track : playlistTracks.getTracks().getItems())
+                    for (PlaylistTrack playlistTrack : playlistTracks.getTracks().getItems())
                     {   
-                        AudioItem item = super.loadItem(apm, new AudioReference(String.format("ytsearch:%s", track.getTrack().getName()), null));
-                        if (item instanceof AudioTrack)
+                        IPlaylistItem track = playlistTrack.getTrack();
+                        String artist = "";
+                        String title = "";
+                        if (track == null)
                         {
-                            tracks.add((AudioTrack) item);
+                            continue;
                         }
-                        else if (item instanceof AudioPlaylist) 
+                        if (track instanceof Track)
                         {
-                            AudioPlaylist playlist = (AudioPlaylist) item;
-                            tracks.add(playlist.getTracks().get(0));
+                            artist = ((Track) track).getArtists()[0].getName();
+                            title = ((Track) track).getName();
+                        } 
+                        else if (track instanceof TrackSimplified)
+                        {
+                            artist = ((TrackSimplified) track).getArtists()[0].getName();
+                            title = ((TrackSimplified) track).getName();
                         }
+                        AudioTrackInfo info = new AudioTrackInfo(title, artist, track.getDurationMs(), title, false, "");
+                        LazyAudioTrack ytTrack = new LazyAudioTrack(info, audioTrackInfo -> loadItemFromYoutube(apm, audioTrackInfo.title, audioTrackInfo.author));
+                        tracks.add(ytTrack);
                     }
-                    return new BasicAudioPlaylist(playlistTracks.getName(), tracks, null, false);
+                    return new BasicAudioPlaylist(playlistName, tracks, null, false);
                 } 
                 else if ("album".equals(type)) 
                 {
@@ -122,7 +139,7 @@ public class SpotifySourceManager extends YoutubeAudioSourceManager
                     for (TrackSimplified track : albumTracks.getTracks().getItems()) 
                     {
                         String artist = track.getArtists()[0].getName();
-                        AudioItem item = super.loadItem(apm, new AudioReference(String.format("ytsearch:%s - %s", artist, track.getName()), null));
+                        AudioItem item = loadItemFromYoutube(apm, artist, track.getName());
                         if (item instanceof AudioTrack) 
                         {
                             tracks.add((AudioTrack) item);
