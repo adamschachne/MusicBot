@@ -49,10 +49,17 @@ public class PlayerManager extends DefaultAudioPlayerManager
     {
         TransformativeAudioSourceManager.createTransforms(bot.getConfig().getTransforms()).forEach(t -> registerSourceManager(t));
 
+        int maxPlaylistPages = bot.getConfig().getMaxYTPlaylistPages();
+        
         YoutubeAudioSourceManager yt = new YoutubeAudioSourceManager(true);
-        yt.setPlaylistPageCount(bot.getConfig().getMaxYTPlaylistPages());
+        yt.setPlaylistPageCount(maxPlaylistPages);
         registerSourceManager(yt);
-
+    
+        SpotifySourceManager spotifyManager = new SpotifySourceManager(maxPlaylistPages);
+        if (spotifyManager.isEnabled()) 
+        {
+            registerSourceManager(spotifyManager);
+        }
         registerSourceManager(SoundCloudAudioSourceManager.createDefault());
         registerSourceManager(new BandcampAudioSourceManager());
         registerSourceManager(new VimeoAudioSourceManager());
